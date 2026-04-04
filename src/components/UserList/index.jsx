@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import React from "react";
 import {
   Divider,
@@ -25,12 +26,13 @@ function UserList () {
         </Typography>
         <List component="nav">
           {users.map((item) => (
-            <>
-              <ListItem>
-                      <ListItemText primary={item.first_name}/>
+            <React.Fragment key={item._id}>
+              {/* Thêm component={Link} và đường dẫn 'to' */}
+              <ListItem button component={Link} to={`/users/${item._id}`}>
+                      <ListItemText primary={`${item.first_name} ${item.last_name}`}/>
               </ListItem>
               <Divider />
-            </>
+            </React.Fragment>
           ))}
         </List>
         <Typography variant="body1">
