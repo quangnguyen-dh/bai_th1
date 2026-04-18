@@ -1,65 +1,78 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Typography, Grid, Card, CardHeader, CardMedia, CardContent, Divider } from "@mui/material";
 import { useParams, Link } from "react-router-dom";
-import models from "../../modelData/models"; // Nhập dữ liệu
+import fetchModel from "../../lib/fetchModelData";
 import "./styles.css";
 
-/**
- * Define UserPhotos, a React component of Project 4.
- */
-function UserPhotos() {
-    // Lấy userId từ thanh địa chỉ URL
-    const { userId } = useParams();
-    
-    // Tìm tất cả ảnh của người dùng này
-    const photos = models.photoOfUserModel(userId);
+// Hàm xử lý ảnh an toàn, nếu đường dẫn sai web cũng không bị sập
+const getSafeImage = (fileName) => {
+    try {
+        return require(`../../images/${fileName}`);
+    } catch (error) {
+        return ""; 
+    }
+};
 
-    // Xử lý trường hợp người dùng chưa có ảnh nào
+function UserPhotos() {
+    const { userId } = useParams();
+    const [photos, setPhotos] = useState([]);
+
+    useEffect(() => {
+        fetchModel(`/photosOfUser/${userId}`)
+            .then((response) => {
+                // Bảo vệ: Nếu dữ liệu tải về không phải mảng, set mảng rỗng
+                if (response && Array.isArray(response.data)) {
+                    setPhotos(response.data);
+                } else {
+                    setPhotos([]);
+                }
+            })
+            .catch((err) => console.error("Lỗi khi tải ảnh:", err));
+    }, [userId]);
+
+    // Bảo vệ: Nếu chưa có ảnh thì hiện thông báo
     if (!photos || photos.length === 0) {
-        return <Typography variant="h5">Người dùng này chưa có bức ảnh nào!</Typography>;
+        return <Typography variant="h6" style={{ padding: '20px' }}>Đang tải dữ liệu hoặc người dùng chưa có ảnh...</Typography>;
     }
 
     return (
-        <Grid container spacing={3}>
-            {photos.map((photo) => (
+        <Grid container spacing={3} style={{ padding: '20px' }}>
+            {/* Bảo vệ bằng (photos || []).map */}
+            {(photos || []).map((photo) => (
                 <Grid item xs={12} key={photo._id}>
                     <Card variant="outlined">
-                        {/* Thời gian đăng ảnh */}
                         <CardHeader
                             title="Chi tiết bức ảnh"
-                            subheader={`Ngày đăng: ${photo.date_time}`}
+                            subheader={`Ngày đăng: ${photo.date_time ? new Date(photo.date_time).toLocaleString() : 'Không rõ'}`} 
                         />
-                        
-                        {/* Hiển thị ảnh (Lấy trực tiếp từ thư mục src/images/) */}
                         <CardMedia
                             component="img"
-                            image={require(`../../images/${photo.file_name}`)}
+                            image={getSafeImage(photo.file_name)}
                             alt={photo.file_name}
                             style={{ objectFit: 'contain', maxHeight: '500px' }}
                         />
-                        
                         <CardContent>
                             <Typography variant="h6">Bình luận:</Typography>
                             <Divider style={{ marginBottom: '10px' }} />
                             
-                            {/* Kiểm tra và in ra danh sách bình luận */}
+                            {/* BẢO VỆ CHÍNH Ở ĐÂY: Dùng (photo.comments || []).map để không bao giờ bị lỗi map */}
                             {photo.comments && photo.comments.length > 0 ? (
-                                photo.comments.map((c) => (
+                                (photo.comments || []).map((c) => (
                                     <div key={c._id} style={{ marginBottom: '15px' }}>
-                                        {/* Tên người bình luận (Có thể click để sang trang của người đó) và thời gian */}
                                         <Typography variant="body2" color="textSecondary" gutterBottom>
-                                            {c.date_time} - Đăng bởi:{" "}
+                                            {c.date_time ? new Date(c.date_time).toLocaleString() : 'Không rõ'} - Đăng bởi:{" "}
                                             <strong>
-                                                <Link to={`/users/${c.user._id}`} style={{ textDecoration: 'none', color: '#1976d2' }}>
-                                                    {c.user.first_name} {c.user.last_name}
-                                                </Link>
+                                                {c.user ? (
+                                                    <Link to={`/users/${c.user._id}`} style={{ textDecoration: 'none', color: '#1976d2' }}>
+                                                        {c.user.first_name} {c.user.last_name}
+                                                    </Link>
+                                                ) : (
+                                                    "Người dùng ẩn danh"
+                                                )}
                                             </strong>
                                         </Typography>
-                                        
-                                        {/* Nội dung bình luận */}
                                         <Typography variant="body1">
-                                            {/* Dùng dangerouslySetInnerHTML vì trong dữ liệu models.js có chứa thẻ in đậm <b> */}
-                                            <span dangerouslySetInnerHTML={{ __html: c.comment }} />
+                                            {c.comment ? <span dangerouslySetInnerHTML={{ __html: c.comment }} /> : ""}
                                         </Typography>
                                     </div>
                                 ))

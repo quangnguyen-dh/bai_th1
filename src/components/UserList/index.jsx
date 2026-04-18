@@ -1,45 +1,29 @@
+import React, { useState, useEffect } from "react"; // Thêm useState, useEffect
+import { List, ListItem, ListItemText, Divider } from "@mui/material";
 import { Link } from "react-router-dom";
-import React from "react";
-import {
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  Typography,
-} from "@mui/material";
+import fetchModel from "../../lib/fetchModelData"; // Import hàm fetch
 
-import "./styles.css";
-import models from "../../modelData/models";
+function UserList() {
+    const [users, setUsers] = useState([]); // State để lưu danh sách user
 
-/**
- * Define UserList, a React component of Project 4.
- */
-function UserList () {
-    const users = models.userListModel();
+    useEffect(() => {
+        // Gọi API lấy danh sách user
+        fetchModel("/user/list").then((response) => {
+            setUsers(response.data);
+        }).catch(err => console.error(err));
+    }, []);
+
     return (
-      <div>
-        <Typography variant="body1">
-          This is the user list, which takes up 3/12 of the window. You might
-          choose to use <a href="https://mui.com/components/lists/">Lists</a>{" "}
-          and <a href="https://mui.com/components/dividers/">Dividers</a> to
-          display your users like so:
-        </Typography>
         <List component="nav">
-          {users.map((item) => (
-            <React.Fragment key={item._id}>
-              {/* Thêm component={Link} và đường dẫn 'to' */}
-              <ListItem button component={Link} to={`/users/${item._id}`}>
-                      <ListItemText primary={`${item.first_name} ${item.last_name}`}/>
-              </ListItem>
-              <Divider />
-            </React.Fragment>
-          ))}
+            {users.map((item) => (
+                <React.Fragment key={item._id}>
+                    <ListItem button component={Link} to={`/users/${item._id}`}>
+                        <ListItemText primary={`${item.first_name} ${item.last_name}`} />
+                    </ListItem>
+                    <Divider />
+                </React.Fragment>
+            ))}
         </List>
-        <Typography variant="body1">
-          The model comes in from models.userListModel()
-        </Typography>
-      </div>
     );
 }
-
 export default UserList;
